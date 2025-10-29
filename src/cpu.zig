@@ -35,46 +35,22 @@ pub const Register = enum(u8) {
     ra,
 };
 
+pub const REGISTER_MAP = blk: {
+    const fields = @typeInfo(Register).@"enum".fields;
+    var kvs: [fields.len]struct { []const u8, u8 } = undefined;
+
+    for (fields, 0..) |field, i| {
+        kvs[i] = .{ field.name, i };
+    }
+
+    break :blk std.StaticStringMap(u8).initComptime(kvs);
+};
+
 pub fn parseReg(name: []const u8) u8 {
     if (name.len < 2 or name[0] != '$') return 0;
 
-    const map = comptime std.StaticStringMap(u8).initComptime(.{
-        .{ "zero", @intFromEnum(Register.zero) },
-        .{ "at", @intFromEnum(Register.at) },
-        .{ "v0", @intFromEnum(Register.v0) },
-        .{ "v1", @intFromEnum(Register.v1) },
-        .{ "a0", @intFromEnum(Register.a0) },
-        .{ "a1", @intFromEnum(Register.a1) },
-        .{ "a2", @intFromEnum(Register.a2) },
-        .{ "a3", @intFromEnum(Register.a3) },
-        .{ "t0", @intFromEnum(Register.t0) },
-        .{ "t1", @intFromEnum(Register.t1) },
-        .{ "t2", @intFromEnum(Register.t2) },
-        .{ "t3", @intFromEnum(Register.t3) },
-        .{ "t4", @intFromEnum(Register.t4) },
-        .{ "t5", @intFromEnum(Register.t5) },
-        .{ "t6", @intFromEnum(Register.t6) },
-        .{ "t7", @intFromEnum(Register.t7) },
-        .{ "s0", @intFromEnum(Register.s0) },
-        .{ "s1", @intFromEnum(Register.s1) },
-        .{ "s2", @intFromEnum(Register.s2) },
-        .{ "s3", @intFromEnum(Register.s3) },
-        .{ "s4", @intFromEnum(Register.s4) },
-        .{ "s5", @intFromEnum(Register.s5) },
-        .{ "s6", @intFromEnum(Register.s6) },
-        .{ "s7", @intFromEnum(Register.s7) },
-        .{ "t8", @intFromEnum(Register.t8) },
-        .{ "t9", @intFromEnum(Register.t9) },
-        .{ "k0", @intFromEnum(Register.k0) },
-        .{ "k1", @intFromEnum(Register.k1) },
-        .{ "gp", @intFromEnum(Register.gp) },
-        .{ "sp", @intFromEnum(Register.sp) },
-        .{ "fp", @intFromEnum(Register.fp) },
-        .{ "ra", @intFromEnum(Register.ra) },
-    });
-
     const r = name[1..]; // remove '$'
-    return map.get(r) orelse 0;
+    return REGISTER_MAP.get(r) orelse 0;
 }
 
 pub const Cpu = struct {
