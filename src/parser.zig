@@ -33,8 +33,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
         }
 
         // handle label definitions
-        // TODO: dont use deprecated indexOfScalar
-        if (std.mem.indexOfScalar(u8, line, ':')) |colon_idx| {
+        if (std.mem.findScalar(u8, line, ':')) |colon_idx| {
             const label = line[0..colon_idx];
             if (in_data) {
                 try labels.put(label, data_ptr);
@@ -57,8 +56,8 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
             // msg1:
             // .asciiz "Hello"
             if (std.mem.startsWith(u8, line, ".asciiz")) {
-                const quote_start = std.mem.indexOfScalar(u8, line, '"') orelse continue;
-                const quote_end = std.mem.lastIndexOfScalar(u8, line, '"') orelse continue;
+                const quote_start = std.mem.findScalar(u8, line, '"') orelse continue;
+                const quote_end = std.mem.findScalarLast(u8, line, '"') orelse continue;
                 const str = line[quote_start + 1 .. quote_end];
                 for (str, 0..) |c, i| {
                     mem.data[(data_ptr - DATA_START) + i] = c;
