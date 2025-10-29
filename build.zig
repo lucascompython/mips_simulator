@@ -71,6 +71,8 @@ pub fn build(b: *std.Build) void {
             // definition if desireable (e.g. firmware for embedded devices).
             .target = target,
             .optimize = optimize,
+            .strip = optimize != .Debug,
+            .unwind_tables = .none,
             // List of modules available for import in source files part of the
             // root module.
             // .imports = &.{
@@ -83,6 +85,8 @@ pub fn build(b: *std.Build) void {
             // },
         }),
     });
+
+    exe.want_lto = optimize != .Debug;
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
