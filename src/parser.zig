@@ -13,6 +13,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
     var lines = std.mem.tokenizeAny(u8, src, "\r\n");
     var labels = LabelTable.init(allocator);
     var text_instructions: std.ArrayList([]const u8) = .empty;
+    defer text_instructions.deinit(allocator);
     var in_data = false;
     var in_text = false;
     var data_ptr: u32 = DATA_START;
