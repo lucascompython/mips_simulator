@@ -86,7 +86,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.want_lto = optimize != .Debug;
+    exe.lto = if (optimize != .Debug) .full else .none;
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
@@ -151,6 +151,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    wasm.lto = .full;
     wasm.entry = .disabled;
     wasm.rdynamic = true;
 

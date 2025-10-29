@@ -7,7 +7,7 @@ const decode = @import("instruction.zig").decode;
 const Register = @import("cpu.zig").Register;
 const LabelTable = @import("labels.zig").LabelTable;
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = std.heap.wasm_allocator;
 var cpu: Cpu = undefined;
 var mem: Memory = undefined;
 var output_buffer: [4096]u8 = undefined;
@@ -111,7 +111,6 @@ fn executeInstruction(instr: Instruction, cpu_ptr: *Cpu, mem_ptr: *Memory, label
 export fn run(code_ptr: [*]const u8, code_len: usize) i32 {
     init();
 
-    const allocator = gpa.allocator();
     const code = code_ptr[0..code_len];
 
     const parsed = parser.parseProgram(allocator, code, &mem) catch {
@@ -170,7 +169,6 @@ export fn continueAfterInput() i32 {
         current_instruction += 1;
     }
 
-    const allocator = gpa.allocator();
     allocator.free(instructions);
 
     return 0;
