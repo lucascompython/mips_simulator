@@ -1,0 +1,73 @@
+const std = @import("std");
+const Memory = @import("memory.zig").Memory;
+const LabelTable = @import("labels.zig").LabelTable;
+const DATA_START = @import("memory.zig").DATA_START;
+
+pub const ParsedProgram = struct {
+    text: []const []const u8, // raw instruction strings for now
+    labels: LabelTable,
+    data_end: u32,
+};
+
+pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory) !ParsedProgram {
+    var lines = std.mem.tokenizeAny(u8, src, "\r\n");
+    var labels = LabelTable.init(allocator);
+    var text_instructions: std.ArrayList([]const u8) = .empty;
+    var in_data = false;
+    var in_text = false;
+    var data_ptr: u32 = DATA_START;
+
+    while (lines.next()) |line_raw| {
+        const line = std.mem.trim(u8, line_raw, " \t");
+        if (line.len == 0 or line[0] == '#') continue;
+
+        if (std.mem.eql(u8, line, ".data")) {
+            in_data = true;
+            in_text = false;
+            continue;
+        }
+        if (std.mem.eql(u8, line, ".text")) {
+            in_data = false;
+            in_text = true;
+            continue;
+        }
+
+        // handle label definitions
+        if (std.mem.indexOfScalar(u8, line, ':')) |colon_idx| {
+            const label = line[0..colon_idx];
+            if (in_data) {
+                try labels.put(label, data_ptr);
+            } else if (in_text) {
+                try labels.put(label, 0); // placeholder for now
+            }
+
+            if (colon_idx + 1 < line.len) {
+                continue; // might have code after label
+            } else {
+                continue;
+            }
+        }
+
+        if (in_data) {
+            // example: msg1: .asciiz "Hello"
+            if (std.mem.startsWith(u8, line, ".asciiz")) {
+                const quote_start = std.mem.indexOfScalar(u8, line, '"') orelse continue;
+                const quote_end = std.mem.lastIndexOfScalar(u8, line, '"') orelse continue;
+                const str = line[quote_start + 1 .. quote_end];
+                for (str, 0..) |c, i| {
+                    mem.data[(data_ptr - DATA_START) + i] = c;
+                }
+                mem.data[(data_ptr - DATA_START) + str.len] = 0;
+                data_ptr += @intCast(str.len + 1);
+            }
+        } else if (in_text) {
+            try text_instructions.append(allocator, line);
+        }
+    }
+
+    return ParsedProgram{
+        .text = try text_instructions.toOwnedSlice(allocator),
+        .labels = labels,
+        .data_end = data_ptr,
+    };
+}

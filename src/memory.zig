@@ -1,25 +1,31 @@
 const std = @import("std");
 
+pub const TEXT_START: u32 = 0x00400000;
+pub const DATA_START: u32 = 0x10010000;
+pub const MEM_SIZE: usize = 1024 * 1024 * 8; // 8 MB
+
 pub const Memory = struct {
-    data: []u8,
+    data: [MEM_SIZE]u8,
 
-    pub fn init(allocator: std.mem.Allocator, size: usize) !Memory {
-        const buf = try allocator.alloc(u8, size);
-        return Memory{ .data = buf };
+    pub fn init() Memory {
+        return Memory{ .data = [_]u8{0} ** MEM_SIZE };
     }
 
-    // read 4 bytes from memory and combines them into a single 32-bit value
-    pub fn loadWord(self: *Memory, addr: u32) !u32 {
-        if (addr + 3 >= self.data.len) return error.OutOfBounds;
-        return (@as(u32, self.data[addr]) << 24) | (@as(u32, self.data[addr + 1]) << 16) | (@as(u32, self.data[addr + 2]) << 8) | @as(u32, self.data[addr + 3]);
+    // reads a 32-bit word from memory at the specified address, bit by bit, big-endian
+    pub fn readWord(self: *Memory, addr: u32) u32 {
+        const offset = addr - TEXT_START;
+        return (@as(u32, self.data[offset]) << 24) |
+            (@as(u32, self.data[offset + 1]) << 16) |
+            (@as(u32, self.data[offset + 2]) << 8) |
+            @as(u32, self.data[offset + 3]);
     }
 
-    // write a 32-bit value into memory, one byte at a time
-    pub fn storeWord(self: *Memory, addr: u32, val: u32) !void {
-        if (addr + 3 >= self.data.len) return error.OutOfBounds;
-        self.data[addr] = @intCast((val >> 24) & 0xFF);
-        self.data[addr + 1] = @intCast((val >> 16) & 0xFF);
-        self.data[addr + 2] = @intCast((val >> 8) & 0xFF);
-        self.data[addr + 3] = @intCast(val & 0xFF);
+    // writes a 32-bit word to memory at the specified address, bit by bit, big-endian
+    pub fn writeWord(self: *Memory, addr: u32, val: u32) void {
+        const offset = addr - TEXT_START;
+        self.data[offset] = @truncate(val >> 24);
+        self.data[offset + 1] = @truncate(val >> 16);
+        self.data[offset + 2] = @truncate(val >> 8);
+        self.data[offset + 3] = @truncate(val);
     }
 };

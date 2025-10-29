@@ -1,25 +1,50 @@
 const std = @import("std");
 
-const Memory = @import("memory.zig").Memory;
-const Instruction = @import("instruction.zig").Instruction;
+pub const Register = enum(u8) {
+    zero = 0,
+    at,
+    v0,
+    v1,
+    a0,
+    a1,
+    a2,
+    a3,
+    t0,
+    t1,
+    t2,
+    t3,
+    t4,
+    t5,
+    t6,
+    t7,
+    s0,
+    s1,
+    s2,
+    s3,
+    s4,
+    s5,
+    s6,
+    s7,
+    t8,
+    t9,
+    k0,
+    k1,
+    gp,
+    sp,
+    fp,
+    ra,
+};
 
 pub const Cpu = struct {
     regs: [32]u32,
     pc: u32,
-    mem: *Memory,
 
-    pub fn init(mem: *Memory) Cpu {
-        return Cpu{
+    pub fn init() Cpu {
+        var cpu = Cpu{
             .regs = [_]u32{0} ** 32,
-            .pc = 0,
-            .mem = mem,
+            .pc = 0x00400000, // default start for .text
         };
-    }
-
-    pub fn step(self: *Cpu) !void {
-        const instr_word = try self.mem.loadWord(self.pc);
-        const instr = Instruction.decode(instr_word);
-        self.pc += 4;
-        try instr.execute(self);
+        cpu.regs[@intFromEnum(Register.sp)] = 0x7fffeffc; // stack pointer
+        return cpu;
     }
 };
