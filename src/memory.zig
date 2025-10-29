@@ -1,5 +1,3 @@
-const std = @import("std");
-
 pub const TEXT_START: u32 = 0x00400000;
 pub const DATA_START: u32 = 0x10010000;
 pub const MEM_SIZE: usize = 1024 * 1024 * 8; // 8 MB

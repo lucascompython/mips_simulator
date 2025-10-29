@@ -18,7 +18,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
     var data_ptr: u32 = DATA_START;
 
     while (lines.next()) |line_raw| {
-        const line = std.mem.trim(u8, line_raw, " \t");
+        var line = std.mem.trim(u8, line_raw, " \t");
         if (line.len == 0 or line[0] == '#') continue;
 
         if (std.mem.eql(u8, line, ".data")) {
@@ -33,6 +33,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
         }
 
         // handle label definitions
+        // TODO: dont use deprecated indexOfScalar
         if (std.mem.indexOfScalar(u8, line, ':')) |colon_idx| {
             const label = line[0..colon_idx];
             if (in_data) {
@@ -42,7 +43,9 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
             }
 
             if (colon_idx + 1 < line.len) {
-                continue; // might have code after label
+                line = std.mem.trim(u8, line[colon_idx + 1 ..], " \t");
+                // Fall through to process the rest of the line
+
             } else {
                 continue;
             }
@@ -50,6 +53,9 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
 
         if (in_data) {
             // example: msg1: .asciiz "Hello"
+            // or
+            // msg1:
+            // .asciiz "Hello"
             if (std.mem.startsWith(u8, line, ".asciiz")) {
                 const quote_start = std.mem.indexOfScalar(u8, line, '"') orelse continue;
                 const quote_end = std.mem.lastIndexOfScalar(u8, line, '"') orelse continue;

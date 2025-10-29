@@ -11,7 +11,7 @@ pub const LabelTable = struct {
         try self.map.put(name, addr);
     }
 
-    pub fn get(self: *LabelTable, name: []const u8) ?u32 {
+    pub fn get(self: *const LabelTable, name: []const u8) ?u32 {
         return self.map.get(name);
     }
 };

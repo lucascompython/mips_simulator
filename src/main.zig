@@ -1,26 +1,11 @@
 const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
-const Parser = @import("parser.zig");
-
-pub fn bufferedPrint() !void {
-    // Stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-    const stdout = &stdout_writer.interface;
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try stdout.flush(); // Don't forget to flush!
-
-}
+const parser = @import("parser.zig");
+const decoder = @import("decoder.zig");
+const exec = @import("exec.zig");
 
 pub fn main() !void {
-    // Prints to stderr, ignoring potential errors.
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    try bufferedPrint();
 
     // var gpa = std.heap.ArenaAllocator.init(std.heap.smp_allocator);
     // const allocator = gpa.allocator();
@@ -39,34 +24,48 @@ pub fn main() !void {
     // try cpu.step();
 
     // std.debug.print("t2 = {}\n", .{cpu.regs[10]}); // expect 15
-    //
+
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 
     const allocator = arena.allocator();
 
+    // TODO: load from file
     const asm_source =
         \\ .data
         \\ msg1: .asciiz "Introduza 2 numeros inteiros: "
         \\ msg2: .asciiz "A soma dos dois numeros é: "
         \\
         \\ .text
-        \\ li $v0, 4
+        \\ li $v0, 4 # v0 = 4 (print_str)
         \\ la $a0, msg1
+        \\ syscall
+        \\ li $v0, 5 # v0 = 5 (read_int)
+        \\ syscall
+        \\
+        \\ add $t0, $zero, $v0 # t1 = first number
+        \\
+        \\ li $v0, 5 # v0 = 5 (read_int)
+        \\ syscall
+        \\
+        \\ add $t1, $zero, $v0 # t2 = second number
+        \\
+        \\ la $a0, msg2
+        \\
+        \\ li $v0, 4 # v0 = 4 (print_str)
+        \\ syscall
+        \\
+        \\ add $a0, $t0, $t1 # a0 is the input param for print_int
+        \\ li $v0, 1
         \\ syscall
     ;
 
+    var cpu = Cpu.init();
     var mem = Memory.init();
-    const parsed = try Parser.parseProgram(allocator, asm_source, &mem);
+    const parsed = try parser.parseProgram(allocator, asm_source, &mem);
 
-    std.debug.print("Labels:\n", .{});
-    var it = parsed.labels.map.iterator();
-    while (it.next()) |entry| {
-        std.debug.print("  {s} = {x}\n", .{ entry.key_ptr.*, entry.value_ptr.* });
-    }
-
-    std.debug.print("\nText lines:\n", .{});
     for (parsed.text) |line| {
-        std.debug.print("  {s}\n", .{line});
+        const instr = decoder.decode(line) orelse continue;
+        exec.execute(instr, &cpu, &mem, &parsed.labels);
     }
 }
 
