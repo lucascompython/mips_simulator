@@ -135,6 +135,31 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
+    // WebAssembly build target
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+
+    const wasm = b.addExecutable(.{
+        .name = "mipster",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/wasm.zig"),
+            .target = wasm_target,
+            .optimize = .ReleaseSmall,
+            .strip = true,
+        }),
+    });
+
+    wasm.entry = .disabled;
+    wasm.rdynamic = true;
+
+    const wasm_step = b.step("wasm", "Build WebAssembly module");
+    const wasm_install = b.addInstallArtifact(wasm, .{
+        .dest_dir = .{ .override = .{ .custom = "../web" } },
+    });
+    wasm_step.dependOn(&wasm_install.step);
+
     // Just like flags, top level steps are also listed in the `--help` menu.
     //
     // The Zig build system is entirely implemented in userland, which means

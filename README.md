@@ -2,7 +2,44 @@
 
 This is a simple MIPS simulator written in Zig. It supports a subset of MIPS instructions and is intended for educational purposes.
 
+🌐 **[Try it online!](https://lucascompython.github.io/mipster/)** - Run Mipster in your browser!
+
 ## Features
 - Basic MIPS instruction set support (add, addi, lui, ori, li, la)
 - Basic system calls (print_int, print_str, read_int)
 - Parse MIPS assembly code
+- WebAssembly support - runs in the browser
+- Interactive web editor with syntax highlighting
+
+## Building
+
+### Native Binary
+
+Build and run the native executable:
+
+```bash
+zig build run
+```
+
+### WebAssembly
+
+Build the WebAssembly module for the web interface:
+
+```bash
+zig build wasm
+```
+
+This will generate `mipster.wasm` in the `web/` directory.
+
+To test locally, you'll need a web server:
+
+```bash
+cd web
+python3 -m http.server 8000
+```
+
+
+## TODO:
+- [ ] Refactor wasm zig code
+- [ ] Re-write the web interface in Astro, with typescript
+- [ ] Support syntax highlighting in the web editor

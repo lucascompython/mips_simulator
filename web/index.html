@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mipster, MIPS Simulator</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>🔧 Mipster, a Small MIPS Simulator</h1>
+                <p>Write MIPS assembly code and run it in your browser</p>
+            </header>
+
+            <div class="main-content">
+                <div class="editor-section">
+                    <div class="section-header">
+                        <h2>Assembly Code</h2>
+                        <button id="runBtn" class="btn btn-primary">
+                            ▶ Run
+                        </button>
+                    </div>
+                    <textarea id="editor" spellcheck="false">
+                       	.data
+                   msg1: 	.asciiz "Introduza 2 numeros inteiros: "
+                   msg2:   .asciiz "Introduza o segundo numero: "
+                   msg3: 	.asciiz "A soma dos dois numeros é: "
+
+                       	.text
+
+                   li $v0, 4 # v0=4 é print_str
+                   la $a0, msg1
+                   syscall
+
+                   li $v0, 5 # v0=5 é read_int
+                   syscall
+                   add $t0, $zero, $v0 # t0 = a, add com zero é so um mov
+
+                   la $a0, msg2
+                   li $v0, 4
+                   syscall
+
+                   li $v0, 5
+                   syscall
+                   add $t1, $zero, $v0 # t1 = b
+
+
+                   la $a0, msg3
+
+                   li $v0,4
+                   syscall
+
+                   add $a0, $t0, $t1 # a0 é parametro de entrada para o v0 que é o print int
+                   li $v0,1
+                   syscall
+                    </textarea>
+                </div>
+
+                <div class="output-section">
+                    <div class="section-header">
+                        <h2>Output</h2>
+                        <button id="clearBtn" class="btn btn-secondary">
+                            Clear
+                        </button>
+                    </div>
+                    <div id="output" class="output-box"></div>
+                    <div
+                        id="inputPrompt"
+                        class="input-prompt"
+                        style="display: none"
+                    >
+                        <input
+                            type="text"
+                            id="inputField"
+                            placeholder="Enter a number..."
+                        />
+                        <button id="submitInput" class="btn btn-primary">
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="registers-section">
+                <h2>Registers</h2>
+                <div id="registers" class="registers-grid">
+                    <!-- registers will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <footer>
+                <p>
+                    Built with Zig and WebAssembly |
+                    <a
+                        href="https://github.com/lucascompython/mipster"
+                        target="_blank"
+                        >View on GitHub</a
+                    >
+                </p>
+            </footer>
+        </div>
+
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="loader"></div>
+            <p>Loading WASM module...</p>
+        </div>
+
+        <script src="app.js"></script>
+    </body>
+</html>
