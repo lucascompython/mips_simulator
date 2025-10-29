@@ -44,7 +44,6 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
             if (colon_idx + 1 < line.len) {
                 line = std.mem.trim(u8, line[colon_idx + 1 ..], " \t");
                 // Fall through to process the rest of the line
-
             } else {
                 continue;
             }
