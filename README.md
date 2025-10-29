@@ -1,4 +1,4 @@
-# Small MIPS Simulator in Zig
+# Mipster, a small MIPS Simulator in Zig
 
 This is a simple MIPS simulator written in Zig. It supports a subset of MIPS instructions and is intended for educational purposes.
 

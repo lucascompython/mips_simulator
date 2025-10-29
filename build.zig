@@ -59,7 +59,7 @@ pub fn build(b: *std.Build) void {
     // If neither case applies to you, feel free to delete the declaration you
     // don't need and to put everything under a single module.
     const exe = b.addExecutable(.{
-        .name = "mips_simulator",
+        .name = "mipster",
         .root_module = b.createModule(.{
             // b.createModule defines a new module just like b.addModule but,
             // unlike b.addModule, it does not expose the module to consumers of
@@ -76,12 +76,12 @@ pub fn build(b: *std.Build) void {
             // List of modules available for import in source files part of the
             // root module.
             // .imports = &.{
-            //     // Here "mips_simulator" is the name you will use in your source code to
-            //     // import this module (e.g. `@import("mips_simulator")`). The name is
+            //     // Here "mipster" is the name you will use in your source code to
+            //     // import this module (e.g. `@import("mipster")`). The name is
             //     // repeated because you are allowed to rename your imports, which
             //     // can be extremely useful in case of collisions (which can happen
             //     // importing modules from different packages).
-            //     .{ .name = "mips_simulator", .module = mod },
+            //     .{ .name = "mipster", .module = mod },
             // },
         }),
     });
