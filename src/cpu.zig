@@ -1,4 +1,5 @@
 const std = @import("std");
+const TEXT_START = @import("memory.zig").TEXT_START;
 
 pub const Register = enum(u8) {
     zero = 0,
@@ -60,7 +61,7 @@ pub const Cpu = struct {
     pub fn init() Cpu {
         var cpu = Cpu{
             .regs = [_]u32{0} ** 32,
-            .pc = 0x00400000, // default start for .text
+            .pc = TEXT_START,
         };
         cpu.regs[@intFromEnum(Register.sp)] = 0x7fffeffc; // stack pointer
         return cpu;

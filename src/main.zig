@@ -2,8 +2,8 @@ const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
 const parser = @import("parser.zig");
-const decoder = @import("decoder.zig");
 const exec = @import("exec.zig");
+const Instruction = @import("instruction.zig");
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -23,7 +23,8 @@ pub fn main() !void {
     const parsed = try parser.parseProgram(allocator, asm_source, &mem);
 
     for (parsed.text) |line| {
-        const instr = decoder.decode(line) orelse continue;
+        const instr = Instruction.decode(line) orelse continue;
+
         exec.execute(instr, &cpu, &mem, &parsed.labels);
     }
 }
