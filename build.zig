@@ -157,7 +157,7 @@ pub fn build(b: *std.Build) void {
 
     const wasm_step = b.step("wasm", "Build WebAssembly module");
     const wasm_install = b.addInstallArtifact(wasm, .{
-        .dest_dir = .{ .override = .{ .custom = "../web" } },
+        .dest_dir = .{ .override = .{ .custom = "../web/public" } },
     });
     wasm_step.dependOn(&wasm_install.step);
 

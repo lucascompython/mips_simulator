@@ -1,0 +1,642 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { Code } from "astro:components";
+
+// Read the default assembly file at build time
+const defaultCode = readFileSync(
+    join(process.cwd(), "../tests/add.s"),
+    "utf-8",
+);
+---
+
+<Layout title="Mipster, MIPS Simulator">
+    <div class="container">
+        <header>
+            <h1>🔧 Mipster, a Small MIPS Simulator</h1>
+            <p>Write MIPS assembly code and run it in your browser</p>
+        </header>
+
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-header">
+                    <h2>Assembly Code</h2>
+                    <button id="runBtn" class="btn btn-primary">
+                        ▶ Run
+                    </button>
+                </div>
+
+                <!-- TODO: make this a proper code editor -->
+                <Code
+                    code={defaultCode}
+                    id="editor"
+                    lang="mipsasm"
+                    contenteditable
+                    spellcheck="false"
+                />
+            </div>
+
+            <div class="output-section">
+                <div class="section-header">
+                    <h2>Output</h2>
+                    <button id="clearBtn" class="btn btn-secondary">
+                        Clear
+                    </button>
+                </div>
+                <div id="output" class="output-box"></div>
+                <div
+                    id="inputPrompt"
+                    class="input-prompt"
+                    style="display: none"
+                >
+                    <input
+                        type="text"
+                        id="inputField"
+                        placeholder="Enter a number..."
+                    />
+                    <button id="submitInput" class="btn btn-primary">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="registers-section">
+            <h2>Registers</h2>
+            <div id="registers" class="registers-grid">
+                <!-- registers will be populated by js -->
+            </div>
+        </div>
+
+        <footer>
+            <p>
+                Built with Zig and WebAssembly |
+                <a
+                    href="https://github.com/lucascompython/mipster"
+                    target="_blank">View on GitHub</a
+                >
+            </p>
+        </footer>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading WASM module...</p>
+    </div>
+</Layout>
+
+<script>
+    let wasmInstance: any = null;
+    let wasmMemory: WebAssembly.Memory | null = null;
+
+    const registerNames = [
+        "zero",
+        "at",
+        "v0",
+        "v1",
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "t0",
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+        "t7",
+        "s0",
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "t8",
+        "t9",
+        "k0",
+        "k1",
+        "gp",
+        "sp",
+        "fp",
+        "ra",
+    ];
+
+    const outputEl = document.getElementById("output")!;
+    const registersDiv = document.getElementById("registers")!;
+
+    async function loadWasm() {
+        try {
+            const result = await WebAssembly.instantiateStreaming(
+                fetch("/mipster/mipster.wasm"),
+            );
+
+            wasmInstance = result.instance;
+            wasmMemory = wasmInstance.exports.memory as WebAssembly.Memory;
+
+            return true;
+        } catch (error) {
+            outputEl.textContent =
+                "Error: Failed to load WASM module\n" +
+                (error as Error).message;
+            return false;
+        }
+    }
+
+    function getStringFromWasm(ptr: number, len: number): string {
+        if (!wasmMemory) return "";
+        const bytes = new Uint8Array(wasmMemory.buffer, ptr, len);
+        return new TextDecoder().decode(bytes);
+    }
+
+    function updateOutput() {
+        if (!wasmInstance) return;
+
+        const outputPtr = wasmInstance.exports.getOutputPtr();
+        const outputLen = wasmInstance.exports.getOutputLen();
+
+        if (outputLen > 0) {
+            const output = getStringFromWasm(outputPtr, outputLen);
+
+            outputEl.textContent += output;
+
+            wasmInstance.exports.clearOutput();
+        }
+    }
+
+    // TODO: this can be optimized to only update changed registers
+    function updateRegisters() {
+        if (!wasmInstance) return;
+
+        registersDiv.innerHTML = "";
+
+        for (let i = 0; i < 32; i++) {
+            const value = wasmInstance.exports.getRegister(i);
+            const registerDiv = document.createElement("div");
+            registerDiv.className = "register";
+            registerDiv.innerHTML = `
+                <div class="name">$${registerNames[i]} (${i})</div>
+                <div class="value">0x${value.toString(16).padStart(8, "0")}</div>
+            `;
+            registersDiv.appendChild(registerDiv);
+        }
+    }
+
+    const inputPrompt = document.getElementById("inputPrompt")!;
+    const inputField = document.getElementById(
+        "inputField",
+    ) as HTMLInputElement;
+    function showInputPrompt() {
+        inputPrompt.style.display = "flex";
+        inputField.focus();
+    }
+
+    function hideInputPrompt() {
+        inputPrompt.style.display = "none";
+        inputField.value = "";
+    }
+
+    function submitInput() {
+        const input = inputField.value.trim();
+
+        // append the input to output for display
+        outputEl.textContent += input + "\n";
+
+        const encoder = new TextEncoder();
+        const inputBytes = encoder.encode(input);
+
+        if (!wasmMemory || !wasmInstance) return;
+
+        // write input to a known location in WASM memory
+        const inputPtr = 2048;
+        const memory = new Uint8Array(wasmMemory.buffer);
+        memory.set(inputBytes, inputPtr);
+
+        wasmInstance.exports.provideInput(inputPtr, inputBytes.length);
+
+        hideInputPrompt();
+
+        // continue execution after input
+        wasmInstance.exports.continueAfterInput();
+
+        updateOutput();
+
+        const stillWaiting = wasmInstance.exports.isWaitingForInput();
+
+        if (stillWaiting) {
+            showInputPrompt();
+        } else {
+            updateRegisters();
+        }
+    }
+
+    const editor = document.getElementById("editor") as HTMLElement;
+    const codeEl = editor.querySelector("code")!;
+    async function runCode() {
+        if (!wasmInstance) {
+            outputEl.textContent = "Error: WASM not loaded yet\n";
+            return;
+        }
+
+        let code = "";
+        code = Array.from(codeEl.childNodes)
+            .map((node) => node.textContent)
+            .join("");
+
+        outputEl.textContent = "";
+
+        try {
+            // Encode the code to bytes
+            const encoder = new TextEncoder();
+            const codeBytes = encoder.encode(code);
+
+            if (!wasmMemory) return;
+
+            // allocate memory for the code
+            const codePtr = 4096;
+            const memory = new Uint8Array(wasmMemory.buffer);
+
+            // make sure we have enough space
+            if (codePtr + codeBytes.length > memory.length) {
+                throw new Error("Code too large");
+            }
+
+            memory.set(codeBytes, codePtr);
+
+            const result = wasmInstance.exports.run(codePtr, codeBytes.length);
+
+            updateOutput();
+
+            const waitingForInput = wasmInstance.exports.isWaitingForInput();
+
+            if (waitingForInput) {
+                showInputPrompt();
+            } else {
+                if (result === 0) {
+                    updateRegisters();
+                }
+            }
+        } catch (error) {
+            outputEl.textContent += "\nError: " + (error as Error).message;
+            console.error(error);
+        }
+    }
+
+    function clearOutput() {
+        outputEl.textContent = "";
+    }
+
+    const loadingOverlay = document.getElementById("loadingOverlay")!;
+    const loadingText = loadingOverlay?.querySelector("p")!;
+    document.addEventListener("DOMContentLoaded", async () => {
+        const loaded = await loadWasm();
+
+        if (loaded) {
+            loadingOverlay.style.display = "none";
+            updateRegisters();
+        } else {
+            loadingText.textContent = "Failed to load WASM module";
+            setTimeout(() => {
+                loadingOverlay.style.display = "none";
+            }, 2000);
+        }
+
+        document.getElementById("runBtn")?.addEventListener("click", runCode);
+        document
+            .getElementById("clearBtn")
+            ?.addEventListener("click", clearOutput);
+        document
+            .getElementById("submitInput")
+            ?.addEventListener("click", submitInput);
+
+        inputField.addEventListener("keypress", (e) => {
+            if (
+                (e as KeyboardEvent).key === "Enter" &&
+                inputField.value.trim() !== ""
+            ) {
+                submitInput();
+            }
+        });
+
+        editor.addEventListener("keydown", (e) => {
+            if (
+                (e as KeyboardEvent).ctrlKey &&
+                (e as KeyboardEvent).key === "Enter"
+            ) {
+                runCode();
+            }
+        });
+    });
+</script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    :global(body) {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a1a;
+        min-height: 100vh;
+        padding: 20px;
+        color: #e0e0e0;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: #2d2d2d;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+    }
+
+    header {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        padding: 30px;
+        text-align: center;
+        border-bottom: 2px solid #3a3a3a;
+    }
+
+    header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        color: #00d9ff;
+    }
+
+    header p {
+        font-size: 1.1rem;
+        opacity: 0.8;
+        color: #b0b0b0;
+    }
+
+    .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 20px;
+        background: #2d2d2d;
+    }
+
+    .editor-section,
+    .output-section {
+        display: flex;
+        flex-direction: column;
+        height: 500px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #00d9ff;
+    }
+
+    .section-header h2 {
+        font-size: 1.3rem;
+        color: #00d9ff;
+    }
+
+    #editor {
+        flex: 1;
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #3a3a3a;
+        border-radius: 8px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: none;
+        background: #1e1e1e;
+        color: #e0e0e0;
+        transition: border-color 0.3s;
+    }
+
+    #editor:focus {
+        outline: none;
+        border-color: #00d9ff;
+    }
+
+    .output-box {
+        flex: 1;
+        padding: 15px;
+        border: 2px solid #3a3a3a;
+        border-radius: 8px;
+        background: #0a0a0a;
+        color: #00ff00;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .input-prompt {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+    #inputField {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #00d9ff;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: "Courier New", Courier, monospace;
+        background: #1e1e1e;
+        color: #e0e0e0;
+    }
+
+    #inputField:focus {
+        outline: none;
+        border-color: #00ffff;
+        box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+        background: #00d9ff;
+        color: #1a1a1a;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 217, 255, 0.4);
+        background: #00ffff;
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-secondary {
+        background: #3a3a3a;
+        color: #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+        background: #4a4a4a;
+    }
+
+    .registers-section {
+        padding: 20px;
+        background: #252525;
+        border-top: 2px solid #3a3a3a;
+    }
+
+    .registers-section h2 {
+        font-size: 1.3rem;
+        color: #00d9ff;
+        margin-bottom: 15px;
+    }
+
+    .registers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+    }
+
+    :global(.register) {
+        padding: 10px;
+        background: #1e1e1e;
+        border: 1px solid #3a3a3a;
+        border-radius: 6px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    :global(.register:hover) {
+        border-color: #00d9ff;
+        box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3);
+    }
+
+    :global(.register .name) {
+        font-weight: bold;
+        color: #00d9ff;
+        margin-bottom: 5px;
+    }
+
+    :global(.register .value) {
+        color: #b0b0b0;
+    }
+
+    footer {
+        background: #1a1a1a;
+        color: #b0b0b0;
+        text-align: center;
+        padding: 20px;
+        border-top: 2px solid #3a3a3a;
+    }
+
+    footer a {
+        color: #00d9ff;
+        text-decoration: none;
+    }
+
+    footer a:hover {
+        text-decoration: underline;
+        color: #00ffff;
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: #e0e0e0;
+    }
+
+    .loader {
+        border: 5px solid #3a3a3a;
+        border-top: 5px solid #00d9ff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .loading-overlay p {
+        font-size: 1.2rem;
+    }
+
+    :global(.error) {
+        color: #ff6b6b;
+        background: #3a1e1e;
+        padding: 10px;
+        border-radius: 6px;
+        margin: 10px 0;
+        border-left: 4px solid #ff6b6b;
+    }
+
+    @media (max-width: 968px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+
+        header h1 {
+            font-size: 2rem;
+        }
+
+        .registers-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        }
+    }
+
+    /* Scrollbar styling for dark theme */
+    :global(::-webkit-scrollbar) {
+        width: 10px;
+        height: 10px;
+    }
+
+    :global(::-webkit-scrollbar-track) {
+        background: #1a1a1a;
+    }
+
+    :global(::-webkit-scrollbar-thumb) {
+        background: #3a3a3a;
+        border-radius: 5px;
+    }
+
+    :global(::-webkit-scrollbar-thumb:hover) {
+        background: #4a4a4a;
+    }
+</style>
