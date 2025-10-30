@@ -243,9 +243,13 @@ const defaultCode = readFileSync(
         }
 
         let code = "";
+
+        const codeEl = editor.querySelector("code")!;
         code = Array.from(codeEl.childNodes)
             .map((node) => node.textContent)
             .join("");
+
+        console.log(code);
 
         outputEl.textContent = "";
 
