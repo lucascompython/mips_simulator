@@ -41,5 +41,5 @@ python3 -m http.server 8000
 
 ## TODO:
 - [ ] Refactor wasm zig code
-- [ ] Re-write the web interface in Astro, with typescript
+- [X] Re-write the web interface in Astro, with typescript
 - [ ] Support syntax highlighting in the web editor
