@@ -46,10 +46,8 @@ async function loadWasm() {
     wasmInstance = result.instance;
     wasmMemory = wasmInstance.exports.memory;
 
-    console.log("WASM loaded successfully");
     return true;
   } catch (error) {
-    console.error("Failed to load WASM:", error);
     document.getElementById("output").textContent =
       "Error: Failed to load WASM module\n" + error.message;
     return false;
@@ -127,20 +125,15 @@ function submitInput() {
   hideInputPrompt();
 
   // continue execution after input
-  console.log("Calling continueAfterInput()...");
   const result = wasmInstance.exports.continueAfterInput();
-  console.log("continueAfterInput() returned:", result);
 
   updateOutput();
 
   const stillWaiting = wasmInstance.exports.isWaitingForInput();
-  console.log("Still waiting for input?", stillWaiting);
 
   if (stillWaiting) {
-    console.log("Showing input prompt again...");
     showInputPrompt();
   } else {
-    console.log("Execution completed, updating registers");
     updateRegisters();
   }
 }
@@ -178,22 +171,13 @@ async function runCode() {
     updateOutput();
 
     const waitingForInput = wasmInstance.exports.isWaitingForInput();
-    console.log(
-      "After run(), waiting for input?",
-      waitingForInput,
-      "result:",
-      result,
-    );
 
     if (waitingForInput) {
-      console.log("Showing input prompt for first time...");
       showInputPrompt();
     } else {
       if (result === 0) {
-        console.log("Program completed successfully");
         updateRegisters();
       } else if (result === -1) {
-        console.log("Program had errors");
       }
     }
   } catch (error) {
