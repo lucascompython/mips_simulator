@@ -18,6 +18,11 @@ pub fn execute(instr: Instruction, cpu: *Cpu, mem: *Memory, labels: *const Label
             const addr = labels.get(i.label) orelse 0;
             cpu.regs[i.rt] = addr;
         },
+        .And => |i| cpu.regs[i.rd] = cpu.regs[i.rs] & cpu.regs[i.rt],
+        .Or => |i| cpu.regs[i.rd] = cpu.regs[i.rs] | cpu.regs[i.rt],
+        .Nor => |i| cpu.regs[i.rd] = ~(cpu.regs[i.rs] | cpu.regs[i.rt]),
+        .Xor => |i| cpu.regs[i.rd] = cpu.regs[i.rs] ^ cpu.regs[i.rt],
+
         .Syscall => {
             if (comptime builtin.target.cpu.arch.isWasm()) {
                 @import("wasm.zig").handleSyscallWasm(cpu, mem);

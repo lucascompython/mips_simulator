@@ -4,6 +4,7 @@ const parseReg = @import("cpu.zig").parseReg;
 pub const Instruction = union(enum) {
     Add: struct { rd: u8, rs: u8, rt: u8 },
     Addi: struct { rt: u8, rs: u8, imm: i16 },
+
     Lui: struct { rt: u8, imm: u16 },
     Ori: struct { rt: u8, rs: u8, imm: u16 },
     Syscall: void,
@@ -11,6 +12,11 @@ pub const Instruction = union(enum) {
     // pseudo instructions (expanded before execution)
     Li: struct { rt: u8, imm: i32 },
     La: struct { rt: u8, label: []const u8 },
+
+    And: struct { rd: u8, rs: u8, rt: u8 },
+    Or: struct { rd: u8, rs: u8, rt: u8 },
+    Nor: struct { rd: u8, rs: u8, rt: u8 },
+    Xor: struct { rd: u8, rs: u8, rt: u8 },
 };
 
 pub const OpCode = std.meta.Tag(Instruction);
@@ -44,6 +50,8 @@ pub fn decode(line: []const u8) ?Instruction {
 
     const opcode = OPCODE_MAP.get(op) orelse return null;
 
+    // TODO: handler error cases for missing/invalid operands
+    // TODO: This could be made more efficient
     switch (opcode) {
         .Add => {
             const rd = parseReg(parts.next() orelse return null);
@@ -81,6 +89,30 @@ pub fn decode(line: []const u8) ?Instruction {
             const rt = parseReg(parts.next() orelse return null);
             const label = parts.next() orelse return null;
             return Instruction{ .La = .{ .rt = rt, .label = label } };
+        },
+        .And => {
+            const rd = parseReg(parts.next() orelse return null);
+            const rs = parseReg(parts.next() orelse return null);
+            const rt = parseReg(parts.next() orelse return null);
+            return Instruction{ .And = .{ .rd = rd, .rs = rs, .rt = rt } };
+        },
+        .Or => {
+            const rd = parseReg(parts.next() orelse return null);
+            const rs = parseReg(parts.next() orelse return null);
+            const rt = parseReg(parts.next() orelse return null);
+            return Instruction{ .Or = .{ .rd = rd, .rs = rs, .rt = rt } };
+        },
+        .Nor => {
+            const rd = parseReg(parts.next() orelse return null);
+            const rs = parseReg(parts.next() orelse return null);
+            const rt = parseReg(parts.next() orelse return null);
+            return Instruction{ .Nor = .{ .rd = rd, .rs = rs, .rt = rt } };
+        },
+        .Xor => {
+            const rd = parseReg(parts.next() orelse return null);
+            const rs = parseReg(parts.next() orelse return null);
+            const rt = parseReg(parts.next() orelse return null);
+            return Instruction{ .Xor = .{ .rd = rd, .rs = rs, .rt = rt } };
         },
         .Syscall => return Instruction{ .Syscall = {} },
     }
