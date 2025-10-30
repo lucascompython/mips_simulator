@@ -6,6 +6,7 @@ const Instruction = @import("instruction.zig").Instruction;
 const decode = @import("instruction.zig").decode;
 const Register = @import("cpu.zig").Register;
 const LabelTable = @import("labels.zig").LabelTable;
+const executeInstruction = @import("exec.zig").execute;
 
 const allocator = std.heap.wasm_allocator;
 var cpu: Cpu = undefined;
@@ -66,7 +67,7 @@ fn appendOutput(str: []const u8) void {
     output_len += to_copy;
 }
 
-fn handleSyscallWasm(cpu_ptr: *Cpu, mem_ptr: *Memory) void {
+pub fn handleSyscallWasm(cpu_ptr: *Cpu, mem_ptr: *Memory) void {
     const v0 = cpu_ptr.regs[@intFromEnum(Register.v0)];
     const a0 = cpu_ptr.regs[@intFromEnum(Register.a0)];
 
@@ -90,21 +91,6 @@ fn handleSyscallWasm(cpu_ptr: *Cpu, mem_ptr: *Memory) void {
             waiting_for_input = true;
         },
         else => {},
-    }
-}
-
-fn executeInstruction(instr: Instruction, cpu_ptr: *Cpu, mem_ptr: *Memory, labels: *const LabelTable) void {
-    switch (instr) {
-        .Add => |i| cpu_ptr.regs[i.rd] = cpu_ptr.regs[i.rs] + cpu_ptr.regs[i.rt],
-        .Addi => |i| cpu_ptr.regs[i.rt] = cpu_ptr.regs[i.rs] +% @as(u32, @bitCast(@as(i32, i.imm))),
-        .Lui => |i| cpu_ptr.regs[i.rt] = @as(u32, i.imm) << 16,
-        .Ori => |i| cpu_ptr.regs[i.rt] = cpu_ptr.regs[i.rs] | @as(u32, i.imm),
-        .Li => |i| cpu_ptr.regs[i.rt] = @bitCast(i.imm),
-        .La => |i| {
-            const addr = labels.get(i.label) orelse 0;
-            cpu_ptr.regs[i.rt] = addr;
-        },
-        .Syscall => handleSyscallWasm(cpu_ptr, mem_ptr),
     }
 }
 

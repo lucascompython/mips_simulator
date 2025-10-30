@@ -5,6 +5,8 @@ const Instruction = @import("instruction.zig").Instruction;
 const Register = @import("cpu.zig").Register;
 const LabelTable = @import("labels.zig").LabelTable;
 
+const builtin = @import("builtin");
+
 pub fn execute(instr: Instruction, cpu: *Cpu, mem: *Memory, labels: *const LabelTable) void {
     switch (instr) {
         .Add => |i| cpu.regs[i.rd] = cpu.regs[i.rs] + cpu.regs[i.rt],
@@ -16,7 +18,13 @@ pub fn execute(instr: Instruction, cpu: *Cpu, mem: *Memory, labels: *const Label
             const addr = labels.get(i.label) orelse 0;
             cpu.regs[i.rt] = addr;
         },
-        .Syscall => handleSyscall(cpu, mem),
+        .Syscall => {
+            if (comptime builtin.target.cpu.arch.isWasm()) {
+                @import("wasm.zig").handleSyscallWasm(cpu, mem);
+            } else {
+                handleSyscall(cpu, mem);
+            }
+        },
     }
 }
 
