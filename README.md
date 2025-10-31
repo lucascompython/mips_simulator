@@ -18,7 +18,7 @@ This is a simple MIPS simulator written in Zig. It supports a subset of MIPS ins
 Build and run the native executable:
 
 ```bash
-zig build run
+zig build run -- ./tests/add.s
 ```
 
 ### WebAssembly
@@ -29,13 +29,14 @@ Build the WebAssembly module for the web interface:
 zig build wasm
 ```
 
-This will generate `mipster.wasm` in the `web/` directory.
+This will generate `mipster.wasm` in the `web/public/` directory.
 
-To test locally, you'll need a web server:
+To test locally:
 
 ```bash
 cd web
-python3 -m http.server 8000
+bun install
+bun run dev
 ```
 
 
