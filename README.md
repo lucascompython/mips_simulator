@@ -5,7 +5,7 @@ This is a simple MIPS simulator written in Zig. It supports a subset of MIPS ins
 🌐 **[Try it online!](https://lucascompython.github.io/mipster/)** - Run Mipster in your browser!
 
 ## Features
-- Basic MIPS instruction set support (add, addi, lui, ori, li, la)
+- Basic MIPS instruction set support (see [instruction.zig](src/instruction.zig#L4) for details)
 - Basic system calls (print_int, print_str, read_int)
 - Parse MIPS assembly code
 - WebAssembly support - runs in the browser
