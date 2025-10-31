@@ -1,6 +1,7 @@
 const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
+const TEXT_START = @import("memory.zig").TEXT_START;
 const parser = @import("parser.zig");
 const Instruction = @import("instruction.zig").Instruction;
 const decode = @import("instruction.zig").decode;
@@ -17,8 +18,7 @@ var input_buffer: [256]u8 = undefined;
 var input_len: usize = 0;
 var waiting_for_input: bool = false;
 var parsed_labels: LabelTable = undefined;
-var current_instruction: usize = 0;
-var instructions: []const []const u8 = undefined;
+var instructions_list: std.ArrayList(Instruction) = undefined;
 
 export fn init() void {
     cpu = Cpu.init();
@@ -26,7 +26,6 @@ export fn init() void {
     output_len = 0;
     input_len = 0;
     waiting_for_input = false;
-    current_instruction = 0;
 }
 
 export fn getOutputPtr() [*]const u8 {
@@ -106,27 +105,42 @@ export fn run(code_ptr: [*]const u8, code_len: usize) i32 {
     };
 
     parsed_labels = parsed.labels;
-    instructions = parsed.text;
-    current_instruction = 0;
 
-    // execute all instructions
-    while (current_instruction < instructions.len) {
-        const line = instructions[current_instruction];
-        const instr = decode(line) orelse {
-            current_instruction += 1;
-            continue;
+    instructions_list = std.ArrayList(Instruction).empty;
+
+    for (parsed.text) |line| {
+        const instr = decode(line) orelse continue;
+        instructions_list.append(allocator, instr) catch {
+            const err_msg = "Memory error\n";
+            appendOutput(err_msg);
+            return -1;
         };
+    }
+
+    while (true) {
+        if (cpu.pc < TEXT_START) break;
+        const pc_offset = cpu.pc - TEXT_START;
+        const instr_idx = pc_offset / 4;
+
+        if (instr_idx >= instructions_list.items.len) break;
+
+        const instr = instructions_list.items[instr_idx];
+        const old_pc = cpu.pc;
 
         executeInstruction(instr, &cpu, &mem, &parsed_labels);
 
         if (waiting_for_input) {
             // save state and return, will continue from next instruction
-            current_instruction += 1;
+            cpu.pc += 4;
             return 1; // signal that we're waiting for input
         }
 
-        current_instruction += 1;
+        if (cpu.pc == old_pc) {
+            cpu.pc += 4;
+        }
     }
+
+    allocator.free(parsed.text);
 
     return 0;
 }
@@ -138,24 +152,29 @@ export fn continueAfterInput() i32 {
     waiting_for_input = false;
 
     // continue execution from where we left off
-    while (current_instruction < instructions.len) {
-        const line = instructions[current_instruction];
-        const instr = decode(line) orelse {
-            current_instruction += 1;
-            continue;
-        };
+    while (true) {
+        if (cpu.pc < TEXT_START) break;
+        const pc_offset = cpu.pc - TEXT_START;
+        const instr_idx = pc_offset / 4;
+
+        if (instr_idx >= instructions_list.items.len) break;
+
+        const instr = instructions_list.items[instr_idx];
+        const old_pc = cpu.pc;
 
         executeInstruction(instr, &cpu, &mem, &parsed_labels);
 
         if (waiting_for_input) {
-            current_instruction += 1;
+            cpu.pc += 4;
             return 1;
         }
 
-        current_instruction += 1;
+        if (cpu.pc == old_pc) {
+            cpu.pc += 4;
+        }
     }
 
-    allocator.free(instructions);
+    instructions_list.deinit(allocator);
 
     return 0;
 }

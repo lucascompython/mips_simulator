@@ -35,6 +35,7 @@ pub fn main() !void {
 
     const TEXT_START = @import("memory.zig").TEXT_START;
 
+    // TODO: extract this loop to a function, this is also used in wasm.zig
     while (true) {
         if (cpu.pc < TEXT_START) break;
         const pc_offset = cpu.pc - TEXT_START;

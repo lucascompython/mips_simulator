@@ -61,7 +61,7 @@ pub fn decode(line: []const u8) ?Instruction {
     const opcode = OPCODE_MAP.get(op) orelse return null;
 
     // TODO: handler error cases for missing/invalid operands
-    // TODO: This could be made more efficient
+    // TODO: This could be made more efficient, maybe make a macro to generate this?
     switch (opcode) {
         .Add => {
             const rd = parseReg(parts.next() orelse return null);
