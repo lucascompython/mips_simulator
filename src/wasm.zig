@@ -93,6 +93,32 @@ pub fn handleSyscallWasm(cpu_ptr: *Cpu, mem_ptr: *Memory) void {
     }
 }
 
+pub fn runUntilBlockOrExit() ?i32 {
+    while (true) {
+        if (cpu.pc < TEXT_START) break;
+        const pc_offset = cpu.pc - TEXT_START;
+        const instr_idx = pc_offset / 4;
+
+        if (instr_idx >= instructions_list.items.len) break;
+
+        const instr = instructions_list.items[instr_idx];
+        const old_pc = cpu.pc;
+
+        executeInstruction(instr, &cpu, &mem, &parsed_labels);
+
+        if (waiting_for_input) {
+            // save state and return, will continue from next instruction
+            cpu.pc += 4;
+            return 1; // signal that we're waiting for input
+        }
+
+        if (cpu.pc == old_pc) {
+            cpu.pc += 4;
+        }
+    }
+    return null;
+}
+
 export fn run(code_ptr: [*]const u8, code_len: usize) i32 {
     init();
 
@@ -117,27 +143,9 @@ export fn run(code_ptr: [*]const u8, code_len: usize) i32 {
         };
     }
 
-    while (true) {
-        if (cpu.pc < TEXT_START) break;
-        const pc_offset = cpu.pc - TEXT_START;
-        const instr_idx = pc_offset / 4;
-
-        if (instr_idx >= instructions_list.items.len) break;
-
-        const instr = instructions_list.items[instr_idx];
-        const old_pc = cpu.pc;
-
-        executeInstruction(instr, &cpu, &mem, &parsed_labels);
-
-        if (waiting_for_input) {
-            // save state and return, will continue from next instruction
-            cpu.pc += 4;
-            return 1; // signal that we're waiting for input
-        }
-
-        if (cpu.pc == old_pc) {
-            cpu.pc += 4;
-        }
+    const result = runUntilBlockOrExit();
+    if (result) |r| {
+        return r;
     }
 
     allocator.free(parsed.text);
@@ -151,27 +159,9 @@ export fn continueAfterInput() i32 {
     cpu.regs[@intFromEnum(Register.v0)] = @bitCast(value);
     waiting_for_input = false;
 
-    // continue execution from where we left off
-    while (true) {
-        if (cpu.pc < TEXT_START) break;
-        const pc_offset = cpu.pc - TEXT_START;
-        const instr_idx = pc_offset / 4;
-
-        if (instr_idx >= instructions_list.items.len) break;
-
-        const instr = instructions_list.items[instr_idx];
-        const old_pc = cpu.pc;
-
-        executeInstruction(instr, &cpu, &mem, &parsed_labels);
-
-        if (waiting_for_input) {
-            cpu.pc += 4;
-            return 1;
-        }
-
-        if (cpu.pc == old_pc) {
-            cpu.pc += 4;
-        }
+    const result = runUntilBlockOrExit();
+    if (result) |r| {
+        return r;
     }
 
     instructions_list.deinit(allocator);

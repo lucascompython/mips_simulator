@@ -1,13 +1,13 @@
 const std = @import("std");
 const Cpu = @import("cpu.zig").Cpu;
-const Memory = @import("memory.zig").Memory;
+const Memory = @import("memory.zig");
 const Instruction = @import("instruction.zig").Instruction;
 const Register = @import("cpu.zig").Register;
 const LabelTable = @import("labels.zig").LabelTable;
 
 const builtin = @import("builtin");
 
-pub fn execute(instr: Instruction, cpu: *Cpu, mem: *Memory, labels: *const LabelTable) void {
+pub fn execute(instr: Instruction, cpu: *Cpu, mem: *Memory.Memory, labels: *const LabelTable) void {
     switch (instr) {
         .Add => |i| cpu.regs[i.rd] = cpu.regs[i.rs] + cpu.regs[i.rt],
         .Addi => |i| cpu.regs[i.rt] = cpu.regs[i.rs] +% @as(u32, @bitCast(@as(i32, i.imm))),
@@ -70,7 +70,7 @@ var stdin_reader = std.fs.File.stdin().reader(&stdin_buffer);
 const stdin = &stdin_reader.interface;
 
 // table of syscall handlers
-fn handleSyscall(cpu: *Cpu, mem: *Memory) void {
+fn handleSyscall(cpu: *Cpu, mem: *Memory.Memory) void {
     const v0 = cpu.regs[@intFromEnum(Register.v0)];
     const a0 = cpu.regs[@intFromEnum(Register.a0)];
     switch (v0) {
@@ -82,7 +82,7 @@ fn handleSyscall(cpu: *Cpu, mem: *Memory) void {
         4 => { // print_str
             var addr = a0;
             while (true) {
-                const c = mem.data[(addr - @import("memory.zig").DATA_START)];
+                const c = mem.data[(addr - Memory.DATA_START)];
                 if (c == 0) {
                     break;
                 }
