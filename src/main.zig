@@ -22,9 +22,34 @@ pub fn main() !void {
     var mem = Memory.init();
     const parsed = try parser.parseProgram(allocator, asm_source, &mem);
 
+    var instructions: std.ArrayList(Instruction.Instruction) = .empty;
+    defer instructions.deinit(allocator);
+
     for (parsed.text) |line| {
-        const instr = Instruction.decode(line) orelse continue;
+        const instr = Instruction.decode(line) orelse {
+            std.debug.print("Warning: could not decode instruction: {s}\n", .{line});
+            continue;
+        };
+        try instructions.append(allocator, instr);
+    }
+
+    const TEXT_START = @import("memory.zig").TEXT_START;
+
+    while (true) {
+        if (cpu.pc < TEXT_START) break;
+        const pc_offset = cpu.pc - TEXT_START;
+        const instr_idx = pc_offset / 4;
+
+        if (instr_idx >= instructions.items.len) break;
+
+        const instr = instructions.items[instr_idx];
+        const old_pc = cpu.pc;
 
         exec.execute(instr, &cpu, &mem, &parsed.labels);
+
+        // if PC wasn't modified by a jump/branch, advance to next instruction
+        if (cpu.pc == old_pc) {
+            cpu.pc += 4;
+        }
     }
 }

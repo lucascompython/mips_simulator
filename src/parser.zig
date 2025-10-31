@@ -17,6 +17,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
     var in_data = false;
     var in_text = false;
     var data_ptr: u32 = DATA_START;
+    var text_instruction_count: u32 = 0;
 
     while (lines.next()) |line_raw| {
         var line = std.mem.trim(u8, line_raw, " \t");
@@ -39,7 +40,8 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
             if (in_data) {
                 try labels.put(label, data_ptr);
             } else if (in_text) {
-                try labels.put(label, 0); // placeholder for now
+                const text_addr = @import("memory.zig").TEXT_START + (text_instruction_count * 4);
+                try labels.put(label, text_addr);
             }
 
             if (colon_idx + 1 < line.len) {
@@ -67,6 +69,7 @@ pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory)
             }
         } else if (in_text) {
             try text_instructions.append(allocator, line);
+            text_instruction_count += 1;
         }
     }
 
