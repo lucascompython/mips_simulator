@@ -2,7 +2,6 @@
 import Layout from "../layouts/Layout.astro";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { Code } from "astro:components";
 
 // Read the default assembly file at build time
 const defaultCode = readFileSync(
@@ -27,14 +26,9 @@ const defaultCode = readFileSync(
                     </button>
                 </div>
 
-                <!-- TODO: make this a proper code editor -->
-                <Code
-                    code={defaultCode}
-                    id="editor"
-                    lang="mipsasm"
-                    contenteditable
-                    spellcheck="false"
-                />
+                <textarea id="editor" contenteditable="true" spellcheck="false">
+                    {defaultCode}
+                </textarea>
             </div>
 
             <div class="output-section">
@@ -244,12 +238,9 @@ const defaultCode = readFileSync(
 
         let code = "";
 
-        const codeEl = editor.querySelector("code")!;
-        code = Array.from(codeEl.childNodes)
-            .map((node) => node.textContent)
-            .join("");
-
-        console.log(code);
+        const editor = document.getElementById("editor") as HTMLElement;
+        // @ts-ignore
+        code = editor.value;
 
         outputEl.textContent = "";
 
