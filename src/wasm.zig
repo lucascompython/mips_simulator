@@ -18,7 +18,7 @@ var input_buffer: [256]u8 = undefined;
 var input_len: usize = 0;
 var waiting_for_input: bool = false;
 var parsed_labels: LabelTable = undefined;
-var instructions_list: std.ArrayList(Instruction) = undefined;
+var instructions_list: std.ArrayList(Instruction) = .empty;
 
 export fn init() void {
     cpu = Cpu.init();
