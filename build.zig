@@ -110,20 +110,21 @@ pub fn build(b: *std.Build) void {
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
 
-    const lint_cmd = b.step("lint", "Lint source code.");
-    lint_cmd.dependOn(step: {
-        // Swap in and out whatever rules you see fit from RULES.md
-        var builder = zlinter.builder(b, .{});
-        // builder.addRule(.{ .builtin = .field_naming }, .{});
-        // builder.addRule(.{ .builtin = .declaration_naming }, .{});
-        builder.addRule(.{ .builtin = .function_naming }, .{});
-        builder.addRule(.{ .builtin = .file_naming }, .{});
-        builder.addRule(.{ .builtin = .switch_case_ordering }, .{});
-        builder.addRule(.{ .builtin = .no_unused }, .{});
-        builder.addRule(.{ .builtin = .no_deprecated }, .{});
-        builder.addRule(.{ .builtin = .no_orelse_unreachable }, .{});
-        break :step builder.build();
-    });
+    // TODO: re-enable when https://github.com/KurtWagner/zlinter/pull/119 gets merged
+    // const lint_cmd = b.step("lint", "Lint source code.");
+    // lint_cmd.dependOn(step: {
+    //     // Swap in and out whatever rules you see fit from RULES.md
+    //     var builder = zlinter.builder(b, .{});
+    //     // builder.addRule(.{ .builtin = .field_naming }, .{});
+    //     // builder.addRule(.{ .builtin = .declaration_naming }, .{});
+    //     builder.addRule(.{ .builtin = .function_naming }, .{});
+    //     builder.addRule(.{ .builtin = .file_naming }, .{});
+    //     builder.addRule(.{ .builtin = .switch_case_ordering }, .{});
+    //     builder.addRule(.{ .builtin = .no_unused }, .{});
+    //     builder.addRule(.{ .builtin = .no_deprecated }, .{});
+    //     builder.addRule(.{ .builtin = .no_orelse_unreachable }, .{});
+    //     break :step builder.build();
+    // });
 
     // By making the run step depend on the default step, it will be run from the
     // installation directory rather than directly from within the cache directory.

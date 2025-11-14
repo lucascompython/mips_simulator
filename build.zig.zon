@@ -33,8 +33,8 @@
     // internet connectivity.
     .dependencies = .{
         .zlinter = .{
-            .url = "git+https://github.com/kurtwagner/zlinter?ref=master#0f4859da9b5f40c42038a6e676db191f4f9e0913",
-            .hash = "zlinter-0.0.1-OjQ08WdWCwDIull0qJMM3D8dmRT0nqE3qP6Y5RN6TI6t",
+            .url = "git+https://github.com/kurtwagner/zlinter?ref=master#9cc837e67fae3cec0206fe393caf36f3e5f535d5",
+            .hash = "zlinter-0.0.1-OjQ08WJ5CwDKr5uzrjRWKeNBZ45qSP7w4r67aUI5txnF",
         },
     },
     .paths = .{
