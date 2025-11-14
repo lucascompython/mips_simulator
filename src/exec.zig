@@ -20,6 +20,15 @@ pub fn execute(instr: Instruction, noalias cpu: *Cpu, noalias mem: *Memory.Memor
             const addr = labels.get(i.label) orelse 0;
             cpu.regs[i.rt] = addr;
         },
+        .Lbu => |i| {
+            const offset = cpu.regs[@intCast(i.offset)];
+            const base = cpu.regs[i.base];
+
+            const addr = base + offset;
+
+            const byte = mem.data[(addr - Memory.DATA_START)];
+            cpu.regs[i.rt] = @as(u32, byte);
+        },
         .Move => |i| cpu.regs[i.rd] = cpu.regs[i.rs],
         .And => |i| cpu.regs[i.rd] = cpu.regs[i.rs] & cpu.regs[i.rt],
         .Or => |i| cpu.regs[i.rd] = cpu.regs[i.rs] | cpu.regs[i.rt],
@@ -29,6 +38,14 @@ pub fn execute(instr: Instruction, noalias cpu: *Cpu, noalias mem: *Memory.Memor
 
         .J => |i| {
             const addr = labels.get(i.label) orelse return;
+            cpu.pc = addr;
+        },
+        .Jr => |i| {
+            cpu.pc = cpu.regs[i.rs];
+        },
+        .Jal => |i| {
+            const addr = labels.get(i.label) orelse return;
+            cpu.regs[@intFromEnum(Register.ra)] = cpu.pc + 4; // save next instruction address
             cpu.pc = addr;
         },
         .Beq => |i| {
@@ -46,6 +63,12 @@ pub fn execute(instr: Instruction, noalias cpu: *Cpu, noalias mem: *Memory.Memor
         .Bgez => |i| {
             const signed_val: i32 = @bitCast(cpu.regs[i.rs]);
             if (signed_val >= 0) {
+                const addr = labels.get(i.label) orelse return;
+                cpu.pc = addr;
+            }
+        },
+        .Beqz => |i| {
+            if (cpu.regs[i.rs] == 0) {
                 const addr = labels.get(i.label) orelse return;
                 cpu.pc = addr;
             }
@@ -109,6 +132,11 @@ fn handleSyscall(noalias cpu: *Cpu, noalias mem: *Memory.Memory) void {
             }
             mem.data[(addr - Memory.DATA_START) + i] = 0; // null-terminate
         },
+
+        10 => { // exit
+            std.process.exit(0);
+        },
+
         else => {},
     }
 }

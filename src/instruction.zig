@@ -12,13 +12,16 @@ pub const Instruction = union(enum) {
     Syscall: void,
 
     J: struct { label: []const u8 },
+    Jal: struct { label: []const u8 },
+    Jr: struct { rs: u8 },
     Beq: struct { rs: u8, rt: u8, label: []const u8 },
     Bne: struct { rs: u8, rt: u8, label: []const u8 },
     Bgez: struct { rs: u8, label: []const u8 },
+    Beqz: struct { rs: u8, label: []const u8 },
 
-    // pseudo instructions (expanded before execution)
     Li: struct { rt: u8, imm: i32 },
     La: struct { rt: u8, label: []const u8 },
+    Lbu: struct { rt: u8, offset: i16, base: u8 },
     Move: struct { rd: u8, rs: u8 },
 
     And: struct { rd: u8, rs: u8, rt: u8 },
@@ -107,6 +110,14 @@ pub fn decode(noalias line: []const u8) ?Instruction {
             const label = parts.next() orelse return null;
             return Instruction{ .J = .{ .label = label } };
         },
+        .Jr => {
+            const rs = parseReg(parts.next() orelse return null);
+            return Instruction{ .Jr = .{ .rs = rs } };
+        },
+        .Jal => {
+            const label = parts.next() orelse return null;
+            return Instruction{ .Jal = .{ .label = label } };
+        },
         .Beq => {
             const rs = parseReg(parts.next() orelse return null);
             const rt = parseReg(parts.next() orelse return null);
@@ -124,6 +135,11 @@ pub fn decode(noalias line: []const u8) ?Instruction {
             const label = parts.next() orelse return null;
             return Instruction{ .Bgez = .{ .rs = rs, .label = label } };
         },
+        .Beqz => {
+            const rs = parseReg(parts.next() orelse return null);
+            const label = parts.next() orelse return null;
+            return Instruction{ .Beqz = .{ .rs = rs, .label = label } };
+        },
         .Li => {
             const rt = parseReg(parts.next() orelse return null);
             const imm_str = parts.next() orelse return null;
@@ -134,6 +150,21 @@ pub fn decode(noalias line: []const u8) ?Instruction {
             const rt = parseReg(parts.next() orelse return null);
             const label = parts.next() orelse return null;
             return Instruction{ .La = .{ .rt = rt, .label = label } };
+        },
+        .Lbu => {
+            const rt = parseReg(parts.next() orelse return null);
+
+            const rs = parts.next() orelse return null;
+            const index_open_paren = std.mem.findScalar(u8, rs, '(') orelse return null;
+            const index_close_paren = std.mem.findScalar(u8, rs, ')') orelse return null;
+            const offset_str = rs[0..index_open_paren];
+            const offset = std.fmt.parseInt(i16, offset_str, 0) catch return null;
+
+            const base_str = rs[index_open_paren + 1 .. index_close_paren];
+
+            const base = parseReg(base_str);
+
+            return Instruction{ .Lbu = .{ .rt = rt, .offset = offset, .base = base } };
         },
         .Move => {
             const rd = parseReg(parts.next() orelse return null);

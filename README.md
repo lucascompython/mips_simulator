@@ -42,6 +42,7 @@ bun run dev
 
 ## TODO:
 
+- [ ] Add a proper tokenizer
 - [ ] Refactor wasm zig code
 - [x] Re-write the web interface in Astro, with typescript
 - [ ] Support syntax highlighting in the web editor
