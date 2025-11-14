@@ -2,9 +2,10 @@
 
 This is a simple MIPS simulator written in Zig. It supports a subset of MIPS instructions and is intended for educational purposes.
 
-🌐 **[Try it online!](https://lucascompython.github.io/mipster/)** - Run Mipster in your browser!
+**[Try it online!](https://lucascompython.github.io/mipster/)** - Run Mipster in your browser!
 
 ## Features
+
 - Basic MIPS instruction set support (see [instruction.zig](src/instruction.zig#L4) for details)
 - Basic system calls (print_int, print_str, read_int)
 - Parse MIPS assembly code
@@ -39,8 +40,8 @@ bun install
 bun run dev
 ```
 
-
 ## TODO:
+
 - [ ] Refactor wasm zig code
-- [X] Re-write the web interface in Astro, with typescript
+- [x] Re-write the web interface in Astro, with typescript
 - [ ] Support syntax highlighting in the web editor
