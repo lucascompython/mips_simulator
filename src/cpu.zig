@@ -47,7 +47,7 @@ pub const REGISTER_MAP = blk: {
     break :blk std.StaticStringMap(u8).initComptime(kvs);
 };
 
-pub fn parseReg(name: []const u8) u8 {
+pub fn parseReg(noalias name: []const u8) u8 {
     if (name.len < 2 or name[0] != '$') return 0;
 
     const r = name[1..]; // remove '$'

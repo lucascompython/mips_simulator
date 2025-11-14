@@ -10,7 +10,7 @@ pub const Memory = struct {
     }
 
     /// reads a 32-bit word from memory at the specified address, bit by bit, big-endian
-    pub fn readWord(self: *Memory, addr: u32) u32 {
+    pub fn readWord(noalias self: *Memory, addr: u32) u32 {
         const offset = addr - TEXT_START;
         return (@as(u32, self.data[offset]) << 24) |
             (@as(u32, self.data[offset + 1]) << 16) |
@@ -19,7 +19,7 @@ pub const Memory = struct {
     }
 
     /// writes a 32-bit word to memory at the specified address, bit by bit, big-endian
-    pub fn writeWord(self: *Memory, addr: u32, val: u32) void {
+    pub fn writeWord(noalias self: *Memory, addr: u32, val: u32) void {
         const offset = addr - TEXT_START;
         self.data[offset] = @truncate(val >> 24);
         self.data[offset + 1] = @truncate(val >> 16);

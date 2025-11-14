@@ -44,7 +44,7 @@ export fn isWaitingForInput() bool {
     return waiting_for_input;
 }
 
-export fn provideInput(ptr: [*]const u8, len: usize) void {
+export fn provideInput(noalias ptr: [*]const u8, len: usize) void {
     const bytes = ptr[0..len];
     const to_copy = @min(len, input_buffer.len);
     @memcpy(input_buffer[0..to_copy], bytes[0..to_copy]);
@@ -59,14 +59,14 @@ export fn getInputValue() i32 {
     return value;
 }
 
-fn appendOutput(str: []const u8) void {
+fn appendOutput(noalias str: []const u8) void {
     const remaining = output_buffer.len - output_len;
     const to_copy = @min(remaining, str.len);
     @memcpy(output_buffer[output_len .. output_len + to_copy], str[0..to_copy]);
     output_len += to_copy;
 }
 
-pub fn handleSyscallWasm(cpu_ptr: *Cpu, mem_ptr: *Memory) void {
+pub fn handleSyscallWasm(noalias cpu_ptr: *Cpu, noalias mem_ptr: *Memory) void {
     const v0 = cpu_ptr.regs[@intFromEnum(Register.v0)];
     const a0 = cpu_ptr.regs[@intFromEnum(Register.a0)];
 
@@ -119,7 +119,7 @@ pub fn runUntilBlockOrExit() ?i32 {
     return null;
 }
 
-export fn run(code_ptr: [*]const u8, code_len: usize) i32 {
+export fn run(noalias code_ptr: [*]const u8, code_len: usize) i32 {
     init();
 
     const code = code_ptr[0..code_len];

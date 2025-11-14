@@ -54,7 +54,7 @@ pub const OPCODE_MAP = blk: {
     break :blk std.StaticStringMap(OpCode).initComptime(kvs);
 };
 
-pub fn decode(line: []const u8) ?Instruction {
+pub fn decode(noalias line: []const u8) ?Instruction {
     var parts = std.mem.tokenizeAny(u8, line, " ,\t");
     const op = parts.next() orelse return null;
 

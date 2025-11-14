@@ -9,7 +9,7 @@ pub const ParsedProgram = struct {
     data_end: u32,
 };
 
-pub fn parseProgram(allocator: std.mem.Allocator, src: []const u8, mem: *Memory) !ParsedProgram {
+pub fn parseProgram(allocator: std.mem.Allocator, noalias src: []const u8, noalias mem: *Memory) !ParsedProgram {
     var lines = std.mem.tokenizeAny(u8, src, "\r\n");
     var labels = LabelTable.init(allocator);
     var text_instructions: std.ArrayList([]const u8) = .empty;
