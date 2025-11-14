@@ -57,15 +57,23 @@ pub fn parseProgram(allocator: std.mem.Allocator, noalias src: []const u8, noali
             // or
             // msg1:
             // .asciiz "Hello"
-            if (std.mem.startsWith(u8, line, ".asciiz")) {
-                const quote_start = std.mem.findScalar(u8, line, '"') orelse continue;
-                const quote_end = std.mem.findScalarLast(u8, line, '"') orelse continue;
+            if (std.mem.find(u8, line, ".asciiz")) |index| {
+                const quote_start = std.mem.findScalar(u8, line[index..], '"').?;
+                const quote_end = std.mem.findScalarLast(u8, line[index..], '"').?;
                 const str = line[quote_start + 1 .. quote_end];
                 for (str, 0..) |c, i| {
                     mem.data[(data_ptr - DATA_START) + i] = c;
                 }
                 mem.data[(data_ptr - DATA_START) + str.len] = 0;
                 data_ptr += @intCast(str.len + 1);
+            } else if (std.mem.find(u8, line, ".space")) |index| {
+                var parts = std.mem.tokenizeAny(u8, line[index + 6 ..], " \t");
+                const size_str = parts.next().?;
+                const size = std.fmt.parseInt(u32, size_str, 0) catch continue;
+                for (0..size) |i| {
+                    mem.data[(data_ptr - DATA_START) + i] = 0;
+                }
+                data_ptr += size;
             }
         } else if (in_text) {
             try text_instructions.append(allocator, line);

@@ -98,6 +98,17 @@ fn handleSyscall(noalias cpu: *Cpu, noalias mem: *Memory.Memory) void {
             const value = std.fmt.parseInt(u32, line.?, 10) catch return;
             cpu.regs[@intFromEnum(Register.v0)] = value;
         },
+        8 => { // read str
+            const len = cpu.regs[@intFromEnum(Register.a1)];
+            const addr = a0;
+            var i: u32 = 0;
+            while (i < len - 1) : (i += 1) {
+                const c = stdin.takeByte() catch 0;
+                if (c == '\n') break;
+                mem.data[(addr - Memory.DATA_START) + i] = c;
+            }
+            mem.data[(addr - Memory.DATA_START) + i] = 0; // null-terminate
+        },
         else => {},
     }
 }
