@@ -89,6 +89,7 @@ pub fn handleSyscallWasm(noalias cpu_ptr: *Cpu, noalias mem_ptr: *Memory) void {
         5 => { // read_int
             waiting_for_input = true;
         },
+        // TODO: implement read_str syscall
         else => {},
     }
 }
